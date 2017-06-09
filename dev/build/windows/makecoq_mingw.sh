@@ -235,7 +235,7 @@ function get_expand_source_tar {
     if [ -f "$SOURCE_LOCAL_CACHE_CFMT/$name.$3" ] ; then
       cp "$SOURCE_LOCAL_CACHE_CFMT/$name.$3" $TARBALLS
     else
-      wget $1/$2.$3
+      wget -N $1/$2.$3
       if [ ! "$2.$3" == "$name.$3" ] ; then
         mv $2.$3 $name.$3
       fi
@@ -1260,7 +1260,7 @@ function get_cygwin_mingw_sources {
         if [ -f "$SOURCE_LOCAL_CACHE_CFMT/$SOURCEFILE" ] ; then
           cp "$SOURCE_LOCAL_CACHE_CFMT/$SOURCEFILE" $TARBALLS
         else
-          wget "$CYGWIN_REPOSITORY/$SOURCE"
+          wget -N "$CYGWIN_REPOSITORY/$SOURCE"
           mv $SOURCEFILE $TARBALLS
           # Save the source archive in the source cache
           if [ -d "$SOURCE_LOCAL_CACHE_CFMT" ] ; then
