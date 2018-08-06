@@ -1373,6 +1373,18 @@ function make_addon_bignums {
   fi
 }
 
+function make_addon_mathcomp {
+  if build_prep https://github.com/math-comp/math-comp/archive/ mathcomp-1.7.0 zip 1; then
+    # To make command lines shorter :-(
+    echo 'COQ_SRC_SUBDIRS:=$(filter-out plugins/%,$(COQ_SRC_SUBDIRS)) plugins/syntax' >> Makefile.coq.local
+    cd mathcomp
+    log1 make all $MAKE_OPT
+    log2 make install
+    cd ..
+    build_post
+  fi
+}
+
 function make_addons {
   for addon in $COQ_ADDONS; do
     "make_addon_$addon"

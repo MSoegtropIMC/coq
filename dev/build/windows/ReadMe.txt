@@ -126,7 +126,7 @@ Set the installation mode / target folder structure.
   
 Possible values:
 
-mingwinCygwin: Install coq in the default Cygwin mingw sysroot folder.
+mingwincygwin: Install coq in the default Cygwin mingw sysroot folder.
                This is %DESTCYG%\usr\%ARCH%-w64-mingw32\sys-root\mingw.
                Todo: The coq share folder should be configured to e.g. /share/coq.
                As is, coqc scans the complete share folder, which slows it down 5x for short files.
@@ -340,6 +340,14 @@ Possible values: 1..N.
 
 Enable build and installation of selected Coq package (can be repeated for
 selecting more packages)
+
+===== -develop =====
+
+Optimize everything for Coq development rather for just build coq or a coq installer.
+
+Additional Cygwin packages installed
+emacs-w32
+emacs-ocaml
 
 ==================== TODO ====================
 
