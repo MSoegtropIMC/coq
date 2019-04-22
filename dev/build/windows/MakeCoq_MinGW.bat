@@ -81,6 +81,9 @@ SET MAKE_THREADS=8
 REM see -addon in ReadMe.txt
 SET "COQ_ADDONS= "
 
+REM see -develop in ReadMe.txt
+SET COQ_DEVELOP=N
+
 REM ========== PARSE COMMAND LINE PARAMETERS ==========
 
 SHIFT
@@ -243,6 +246,13 @@ IF "%~0" == "-addon" (
   GOTO Parse
 )
 
+IF "%~0" == "-develop" (
+  SET COQ_DEVELOP=%~1
+  CALL :CheckYN -develop %~1 || GOTO ErrorExit
+  SHIFT
+  SHIFT
+  GOTO Parse
+)
 
 IF NOT "%~0" == "" (
   ECHO Install cygwin and download, compile and install OCaml and Coq for MinGW
@@ -446,7 +456,8 @@ ECHO ========== BATCH FUNCTIONS ==========
   ECHO -coqver   ^<Coq version to install^>
   ECHO -gtksrc   ^<Y or N^> build GTK ^(90 min^) or use cygwin version
   ECHO -threads  ^<1..N^> Number of make threads
-  ECHO -addon    ^<name^>  Enable building selected addon (can be repeated)
+  ECHO -addon    ^<name^> Enable building selected addon (can be repeated)
+  ECHO -develop  ^<Y or N^> Enable debugging (this build ONLY byte code exes!)
   ECHO(
   ECHO See ReadMe.txt for a detailed description of all parameters
   ECHO(
@@ -469,6 +480,7 @@ ECHO ========== BATCH FUNCTIONS ==========
   ECHO -gtksrc   = %GTK_FROM_SOURCES%
   ECHO -threads  = %MAKE_THREADS%
   ECHO -addon    = %COQ_ADDONS%
+  ECHO -develop  = %COQ_DEVELOP%
   GOTO :EOF
 
 :CheckYN

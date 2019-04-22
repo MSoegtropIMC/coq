@@ -1131,7 +1131,7 @@ function make_findlib {
 function make_dune {
   make_ocaml
 
-  if build_prep https://github.com/ocaml/dune/archive/ 1.6.3 tar.gz 1 dune-1.6.3 ; then
+  if build_prep https://github.com/ocaml/dune/archive/ 1.9.1 tar.gz 1 dune-1.9.1 ; then
 
     log2 make release
     log2 make install
@@ -1146,7 +1146,7 @@ function make_menhir {
   make_ocaml
   make_findlib
   make_ocamlbuild
-  if build_prep http://gallium.inria.fr/~fpottier/menhir menhir-20180530 tar.gz 1 ; then
+  if build_prep http://gallium.inria.fr/~fpottier/menhir menhir-20181005 tar.gz 1 ; then
     # Note: menhir doesn't support -j 8, so don't pass MAKE_OPT
     log2 make all PREFIX="$PREFIXOCAML"
     log2 make install PREFIX="$PREFIXOCAML"
@@ -1329,6 +1329,7 @@ function make_coq {
   make_num
   make_findlib
   make_lablgtk
+  make_dune
   if
     case $COQ_VERSION in
       # e.g. git-v8.6 => download from https://github.com/coq/coq/archive/v8.6.zip
@@ -1354,29 +1355,55 @@ function make_coq {
         ;;
     esac
   then
+    ocaml.exe configure.ml -no-ask -native-compiler no -prefix "./"
+    make -f Makefile.dune voboot $MAKE_OPT
+    dune build   $MAKE_OPT
+    dune install $MAKE_OPT --prefix="$PREFIXCOQ"
+    log1 copy_coq_dlls
+    log1 copy_coq_gtk
+    fail
+
+    # Extra options for developers
+    if [[ $COQ_DEVELOP == Y ]] ; then
+      MAKE_DEV="byte"
+      CONF_DEV="-annot -bin-annot -coqide byte"
+    else
+      MAKE_DEV=""
+      CONF_DEV=""
+    fi
+
+    # Configure Coq
     if [ "$INSTALLMODE" == "relocatable" ]; then
       # HACK: for relocatable builds, first configure with ./, then build but before install reconfigure with the real target path
-      logn configure ./configure -with-doc no -prefix ./ -libdir ./lib/coq -mandir ./man
+      # shellcheck disable=SC2086
+      logn configure ./configure -with-doc no -prefix ./ -libdir ./lib/coq -mandir ./man $CONF_DEV
     elif [ "$INSTALLMODE" == "absolute" ]; then
-      logn configure ./configure -with-doc no -prefix "$PREFIXCOQ" -libdir "$PREFIXCOQ/lib/coq" -mandir "$PREFIXCOQ/man"
+      # shellcheck disable=SC2086
+      logn configure ./configure -with-doc no -prefix "$PREFIXCOQ" -libdir "$PREFIXCOQ/lib/coq" -mandir "$PREFIXCOQ/man" $CONF_DEV
     else
-      logn configure ./configure -with-doc no -prefix "$PREFIXCOQ"
+      # shellcheck disable=SC2086
+      logn configure ./configure -with-doc no -prefix "$PREFIXCOQ" $CONF_DEV
     fi
 
     # The windows resource compiler binary name is hard coded
     sed -i "s/i686-w64-mingw32-windres/$TARGET_ARCH-windres/" Makefile.build
     sed -i "s/i686-w64-mingw32-windres/$TARGET_ARCH-windres/" Makefile.ide || true
 
-    # 8.4x doesn't support parallel make
-    if [[ $COQ_VERSION == 8.4* ]] ; then
-      log1 make
-    else
-      # shellcheck disable=SC2086
-      log1 make $MAKE_OPT
-    fi
+    # Make Coq
+    # shellcheck disable=SC2086
+    log1 make $MAKE_OPT $MAKE_DEV
 
     if [ "$INSTALLMODE" == "relocatable" ]; then
       logn reconfigure ./configure -with-doc no -prefix "$PREFIXCOQ" -libdir "$PREFIXCOQ/lib/coq" -mandir "$PREFIXCOQ/man"
+    fi
+
+    # In develop mode we also want to be able to install, so that coq runs from its usual environment
+    # So hard link the .byte.exe files to .exe and .opt.exe (make install needs both)
+    # (symlinking makes issues with installation and renaming makes issues with incremental make)
+    if [[ $COQ_DEVELOP == Y ]] ; then
+      for file in bin/*.byte.exe ; do cp -a -f -l ${file} ${file/.byte.exe/.exe} ; done
+      for file in bin/*.byte.exe ; do cp -a -f -l ${file} ${file/.byte.exe/.opt.exe} ; done
+      for file in plugins/*/*.byte.exe ; do cp -a -f -l ${file} ${file/.byte.exe/.exe} ; done
     fi
 
     log2 make install
@@ -1866,6 +1893,175 @@ function make_addons {
   sort -u -o "/build/filelists/addon_dependencies.nsh" "/build/filelists/addon_dependencies.nsh"
 }
 
+###################### DEVELOPER SUPPORT (MERLIN) #####################
+
+function make_tuareg {
+  if build_prep https://github.com/ocaml/tuareg/archive master tar.gz 1 tuareg-master; then
+    true
+    build_post
+  fi
+}
+
+function make_cppo {
+  make_dune
+  if build_prep https://github.com/ocaml-community/cppo/archive master tar.gz 1 cppo-master; then
+    make_arch_pkg_config
+
+    # We don't want the ocamlbuild plugin but dune somehow insists on building it
+    rm -rf ocamlbuild_plugin
+    rm cppo_ocamlbuild.opam
+
+    log2 dune build -p cppo -j 6 --display=short
+    log2 dune install --display=short
+    build_post
+  fi
+}
+
+function make_easy_format {
+  make_dune
+  if build_prep https://github.com/mjambon/easy-format/archive master tar.gz 1 easy-format-master; then
+    make_arch_pkg_config
+
+    # Dune seems to be able to handle jbuilder files - good!
+    log2 dune build -p easy-format -j 6 --display=short
+    log2 dune install --display=short
+    build_post
+  fi
+}
+
+function make_biniou {
+  make_dune
+  if build_prep https://github.com/mjambon/biniou/archive master tar.gz 1 biniou-master; then
+    make_arch_pkg_config
+
+    # Dune seems to be able to handle jbuilder files - good!
+    log2 dune build -p biniou -j 6 --display=short
+    log2 dune install --display=short
+    build_post
+  fi
+}
+
+function make_yojson {
+  make_dune
+  make_cppo
+  make_easy_format
+  make_biniou
+  if build_prep https://github.com/mjambon/yojson/archive master tar.gz 1 yojson-master; then
+    make_arch_pkg_config
+
+    log2 dune build -p yojson -j 6 --display=short
+    log2 dune install --display=short
+    build_post
+  fi
+}
+
+function make_result {
+  if build_prep https://github.com/janestreet/result/archive master tar.gz 1 result-master; then
+    make_arch_pkg_config
+
+    log2 dune build -p result -j 6 --display=short
+    log2 dune install --display=short
+    build_post
+  fi
+}
+
+function make_ppx_derivers {
+  if build_prep https://github.com/ocaml-ppx/ppx_derivers/archive master tar.gz 1 ppx_derivers-master; then
+    make_arch_pkg_config
+
+    log2 dune build -p ppx_derivers -j 6 --display=short
+    log2 dune install --display=short
+    build_post
+  fi
+}
+
+function make_ocaml_migrate_parsetree {
+  make_ppx_derivers
+  if build_prep https://github.com/ocaml-ppx/ocaml-migrate-parsetree/archive master tar.gz 1 ocaml_migrate_parsetree-master; then
+    make_arch_pkg_config
+
+    log2 dune build -p ocaml-migrate-parsetree -j 6 --display=short
+    log2 dune install --display=short
+    build_post
+  fi
+}
+
+function make_ppx_tools {
+  make_ocaml_migrate_parsetree
+  if build_prep https://github.com/ocaml-ppx/ppx_tools_versioned/archive master tar.gz 1 ppx_tools_versioned-master; then
+    make_arch_pkg_config
+
+    log2 dune build -p ppx_tools_versioned -j 6 --display=short
+    log2 dune install --display=short
+    build_post
+  fi
+}
+
+function make_ppxfind {
+  make_result
+  make_ppx_tools
+  if build_prep https://github.com/diml/ppxfind/archive master tar.gz 1 ppxfind-master; then
+    make_arch_pkg_config
+
+    log2 dune build -p ppxfind -j 6 --display=short
+    log2 dune install --display=short
+    build_post
+  fi
+}
+
+# This does not build - looks like OCaml incompatibility / issues with ppx_tools / ppx_tools_versioned
+function make_ppx_deriving {
+  make_result
+  make_ppx_tools
+  make_ppxfind
+  if build_prep https://github.com/ocaml-ppx/ppx_deriving/archive master tar.gz 1 ppx_deriving-master; then
+    make_arch_pkg_config
+
+    log2 dune build -p ppx_deriving -j 6
+    log2 dune install --display=short
+    build_post
+  fi
+}
+
+# This does not build cause of make_ppx_deriving
+# This is only required for the Merlin LSP server
+function make_ppx_deriving_yojson {
+  make_ppx_deriving
+  if build_prep https://github.com/ocaml-ppx/ppx_deriving_yojson/archive master tar.gz 1 ppx_deriving_yojson-master; then
+    make_arch_pkg_config
+
+    log2 dune build -p ppx_deriving_yojson -j 6 --display=short
+    log2 dune install --display=short
+    build_post
+  fi
+}
+
+function make_merlin {
+  make_dune
+  make_yojson
+  # The next 2 are only required for the language protocol server
+  # make_ppx_deriving_yojson
+  # make_menhir
+  if build_prep https://github.com/ocaml/merlin/archive master tar.gz 1 merlin-master; then
+    make_arch_pkg_config
+
+    # This builds merlin without language server, but the VSCode plugin uses the language server
+    # log2 dune build -p merlin -j 6 --display=short
+    # log2 dune install merlin --display=short
+    log2 dune build @install -j 6 --display=short
+    log2 dune install --display=short
+
+    build_post
+  fi
+}
+
+function make_develop {
+   if [ "$COQ_DEVELOP" == "Y" ]; then
+     # make_tuareg
+     make_merlin
+   fi
+}
+
 ###################### TOP LEVEL BUILD #####################
 
 ocamlfind list || true
@@ -1874,6 +2070,7 @@ make_sed
 make_ocaml
 make_ocaml_tools
 make_ocaml_libs
+make_develop
 
 list_files ocaml
 

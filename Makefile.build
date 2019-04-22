@@ -83,7 +83,9 @@ coq.timing.diff: coqlib.timing.diff
 
 byte: coqbyte coqide-byte pluginsbyte printers
 
-.PHONY: world coq byte world.timing.diff coq.timing.diff
+coqbyte: coqlib coqbinariesbyte toolsbyte
+
+.PHONY: world coq byte coqbyte world.timing.diff coq.timing.diff
 
 ###########################################################################
 # Includes
@@ -368,10 +370,10 @@ kernel/uint63.ml: kernel/write_uint63.ml kernel/uint63_x86.ml kernel/uint63_amd6
 # Main targets (coqtop.opt, coqtop.byte)
 ###########################################################################
 
-.PHONY: coqbinaries coqbyte
+.PHONY: coqbinaries coqbinariesbyte
 
 coqbinaries: $(TOPBIN) $(COQC) $(COQTOPEXE) $(CHICKEN) $(CSDPCERT) $(FAKEIDE)
-coqbyte: $(TOPBYTE) $(COQCBYTE) $(CHICKENBYTE)
+coqbinariesbyte: $(TOPBYTE) $(COQCBYTE) $(CHICKENBYTE) $(CSDPCERTBYTE) $(FAKEIDEBYTE)
 
 # Special rule for coqtop, we imitate `ocamlopt` can delete the target
 # to avoid #7666
@@ -413,6 +415,9 @@ $(COQTOPBYTE): $(COQTOP_BYTE) $(LINKCMO) $(LIBCOQRUN)
 
 .PHONY: tools
 tools: $(TOOLS) $(OCAMLLIBDEP) $(COQDEPBOOT)
+
+.PHONY: toolsbyte
+toolsbyte: $(TOOLSBYTE) $(OCAMLLIBDEP) $(COQDEPBOOT)
 
 # coqdep_boot : a basic version of coqdep, with almost no dependencies.
 # We state these dependencies here explicitly, since some .ml.d files

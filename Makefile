@@ -258,6 +258,11 @@ optclean:
 	rm -f $(TOOLS) $(PRIVATEBINARIES) $(CSDPCERT)
 	find . \( -name '*.cmx' -o -name '*.cmx[as]' -o -name '*.[soa]' -o -name '*.so' \) -exec rm -f {} +
 
+byteclean:
+	rm -f $(CHICKENBYTEBYTE) $(TOPBYTE)
+	rm -f $(TOOLSBYTE) $(PRIVATEBINARIESBYTE) $(CSDPCERTBYTE)
+	find . \( -name '*.cmo' -o -name '*.cm[as]' -o -name '*.[soa]' -o -name '*.so' \) -exec rm -f {} +
+
 clean-ide:
 	rm -f $(COQIDECMO) $(COQIDECMX) $(COQIDECMO:.cmo=.cmi) $(COQIDEBYTE) $(COQIDE)
 	rm -f ide/input_method_lexer.ml
