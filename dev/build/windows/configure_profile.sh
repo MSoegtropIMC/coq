@@ -30,8 +30,9 @@ if [ ! -f $donefile ] ; then
     # A tightly controlled path helps to avoid issues
     # Note: the order is important: first have the cygwin binaries, then the mingw binaries in the path!
     # Note: /bin is mounted at /usr/bin and /lib at /usr/lib and it is common to use /usr/bin in PATH
+    # Note: /usr/local/bin_special is used for special override binaries, e.g. mingw pkg-config
     # See cat /proc/mounts
-    echo "export PATH=/usr/local/bin:/usr/bin:$RESULT_INSTALLDIR_CFMT/bin:/usr/$TARGET_ARCH/sys-root/mingw/bin:/cygdrive/c/Windows/system32:/cygdrive/c/Windows"
+    echo "export PATH=/usr/local/bin_special:/usr/local/bin:/usr/bin:$RESULT_INSTALLDIR_CFMT/bin:/usr/$TARGET_ARCH/sys-root/mingw/bin:/cygdrive/c/Windows/system32:/cygdrive/c/Windows"
 
     # find and xargs complain if the environment is larger than (I think) 8k.
     # ORIGINAL_PATH (set by cygwin) can be a few k and exceed the limit

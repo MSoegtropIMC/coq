@@ -394,6 +394,7 @@ IF "%RUNSETUP%"=="Y" (
     -P libtool,automake ^
     -P intltool ^
     -P emacs-w32,emacs-ocaml ^
+    -P bash-completion,gnupg,jq,nc ^
     %EXTRAPACKAGES% ^
     || GOTO ErrorExit
 
