@@ -1,9 +1,12 @@
 #!/bin/bash
 
-#TODO
+# TODO
 # add /usr/local/bin_special to path in config setup
 # Create flexdll PR
 # Check if it works without make_arch_pkg_config
+# Error on each first run
+# +12:00:32 ocaml.exe configure.ml -no-ask -native-compiler no -prefix ./
+# /cygdrive/c/bin/cygwin_coq64_ms_dev_opam\build\makecoq_mingw.sh: line 477: ocaml.exe: command not found
 
 ###################### COPYRIGHT/COPYLEFT ######################
 
@@ -13,10 +16,6 @@
 # Released to the public by Intel under the
 # GNU Lesser General Public License Version 2.1 or later
 # See https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
-#
-# With very valuable help on building GTK from
-#   https://wiki.gnome.org/Projects/GTK+/Win32/MSVCCompilationOfGTKStack
-#   http://www.gaia-gis.it/spatialite-3.0.0-BETA/mingw64_how_to.html
 
 ###################### Script safety and debugging settings ######################
 
@@ -325,10 +324,7 @@ function build_post {
 PATCH_MERLIN_EMACS=$(cat <<'ENDHEREDOC'
 --- orig/emacs/site-lisp/merlin.el	2019-04-22 19:46:25.000000000 +0200
 +++ mingw/emacs/site-lisp/merlin.el	2019-04-25 16:16:47.000000000 +0200
-@@ -1648,13 +1648,13 @@
-     (unless command
-       (setq command (if (functionp merlin-command) (funcall merlin-command)
-                       merlin-command)))
+@@ -1651,7 +1651,7 @@
      (when (equal command 'opam)
        (with-temp-buffer
          (if (eq (call-process-shell-command
@@ -337,9 +333,6 @@ PATCH_MERLIN_EMACS=$(cat <<'ENDHEREDOC'
              (progn
                (setq command (concat
                               (replace-regexp-in-string "\n$" "" (buffer-string))
-                              "/ocamlmerlin"))
-               (push (cons 'command command) merlin-buffer-configuration))
-           (message "merlin-command: opam config failed (%S)" (buffer-string))
 ENDHEREDOC
 )
 
@@ -363,7 +356,7 @@ PATCH_USER_SETUP_EMACS=$(cat <<'ENDHEREDOC'
 ENDHEREDOC
 )
 
-###################### OPAM INITIALIZAATION #####################
+###################### OPAM INITIALIZATION & PACKAGES #####################
 
 function opam_init {
   # See https://fdopen.github.io/opam-repository-mingw/installation/
@@ -386,6 +379,7 @@ function opam_install_depext {
     # Note: the path is already setup in .bash_profile!
     opam install depext --yes
     opam install depext-cygwinports --yes
+    eval $(opam config env)
     build_post
   fi
 }
@@ -405,11 +399,12 @@ function opam_install_ocaml_edit {
     # The stripping of \r is required for patching
     # The paths must by cygwin paths
     # Replace \ with / except for lines containig \n or \\
+    # TODO: opam-user-setup.el: ocp-indent replace \ by / does not work cause of double slash
+    # Maybe replace only backslashes sourounded by usual filename chars
     sed -i -e 's/\r//g' -e 's|[C-F]:/.*/home/|/home/|' -e '/\\[\\n]/!s|\\|/|g' .emacs.d/opam-user-setup.el
     echo "$PATCH_USER_SETUP_EMACS" | patch -d "$HOME" -p1
+    eval $(opam config env)
     build_post
-    #TODO: opam-user-setup.el: ocp-indent replace \ by / does not work cause of double slash
-    #Maybe replace only backslashes sourounded by usual filename chars
   fi
 }
 
@@ -419,6 +414,7 @@ function opam_install_opam_coq_deps {
     opam install cairo2 --yes
     opam install lablgtk3 --yes
     opam install lablgtk3-sourceview3 --yes
+    eval $(opam config env)
     build_post
   fi
 }
@@ -432,7 +428,7 @@ function install_nodejs {
 
 ###################### NATIVE WIN32 emacs #####################
 
-function install_emacs {
+function emacs_mingw_install {
   if build_prep http://mirror.easyname.at/gnu/emacs/windows/emacs-26 emacs-26.2-x86_64 zip 1 ; then
     build_post
   fi
@@ -489,25 +485,10 @@ function coq_build_dune {
   fi
 }
 
-##### ARCH-pkg-config replacement #####
-
-# cygwin replaced ARCH-pkg-config with a shell script, which doesn't work e.g. for dune on Windows.
-# This builds a binary replacement for the shell script and puts it into the bin_special folder.
-# There is no global installation since it is module specific what pkg-config is needed under what name.
-
-function make_arch_pkg_config {
-  if install_prep make_arch_pkg_config ; then
-    mkdir /usr/local/bin_special
-    gcc -DARCH="$TARGET_ARCH" -o /usr/local/bin_special/pkg-config.exe $PATCHES/pkg-config.c
-    build_post
-  fi
-}
-
 ###################### TOP LEVEL BUILD #####################
 
 git_init
-#install_emacs
-make_arch_pkg_config
+# emacs_mingw_install
 opam_init
 opam_install_depext
 opam_install_ocaml_edit
