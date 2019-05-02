@@ -7,6 +7,9 @@
 # Error on each first run
 # +12:00:32 ocaml.exe configure.ml -no-ask -native-compiler no -prefix ./
 # /cygdrive/c/bin/cygwin_coq64_ms_dev_opam\build\makecoq_mingw.sh: line 477: ocaml.exe: command not found
+#
+# Do not automatically update .bashprofile - the installed env hook is super invasive
+# Just do a simple eval $(opam env)
 
 ###################### COPYRIGHT/COPYLEFT ######################
 
@@ -194,18 +197,22 @@ function get_expand_source_tar {
   cd "$folder"
 
   # Extract source archive
-  if [ "$3" == "zip" ] ; then
-    unzip "$TARBALLS/$name.$3"
-    if [ "$strip" == "1" ] ; then
-      # move subfolders of root folders one level up
-      find "$(ls)" -mindepth 1 -maxdepth 1 -exec mv -- "{}" . \;
-    else
-      echo "Unzip strip count not supported"
-      return 1
-    fi
-  else
-    tar xvaf "$TARBALLS/$name.$3" --strip $strip
-  fi
+  case $3 in
+    zip) CYGWINARCH=x86_64
+      unzip "$TARBALLS/$name.$3"
+      if [ "$strip" == "1" ] ; then
+        # move subfolders of root folders one level up
+        find "$(ls)" -mindepth 1 -maxdepth 1 -exec mv -- "{}" . \;
+      else
+        echo "Unzip strip count not supported"
+        return 1
+      fi
+      ;;
+    tar.* | tgz )
+      tar xvaf "$TARBALLS/$name.$3" --strip $strip ;;
+    *)
+      cp "$TARBALLS/$name.$3" . ;;
+  esac
 
   # Patch if patch file exists
   # First try specific patch file name then generic patch file name
@@ -426,13 +433,42 @@ function install_nodejs {
   fi
 }
 
-###################### NATIVE WIN32 emacs #####################
+###################### Emacs #####################
+
+# Native Win32 emacs (instead of cygwin bundled emacs)
 
 function emacs_mingw_install {
   if build_prep http://mirror.easyname.at/gnu/emacs/windows/emacs-26 emacs-26.2-x86_64 zip 1 ; then
+# if build_prep http://mirror.easyname.at/gnu/emacs/windows/emacs-26 emacs-26.2-x86_64-no-deps zip 1 ; then
     build_post
   fi
 }
+
+# Teach cygwin emacs to understand Windows style paths
+
+function emacs_install_winpath {
+  # See https://www.emacswiki.org/emacs/windows-path.el
+  if build_prep https://www.emacswiki.org/emacs/download windows-path el ; then
+    # Get required files
+    get_expand_source_tar https://www.emacswiki.org/emacs/download cygwin-mount el
+
+    # Copy files to site-lisp folder
+    cp windows-path.el /usr/share/emacs/site-lisp/
+    cp cygwin-mount/cygwin-mount.el /usr/share/emacs/site-lisp/
+
+    echo ";; Add support for windows style paths in cygwin emacs" >> ~/.emacs
+    echo "(require 'windows-path)" >> ~/.emacs
+    echo "(windows-path-activate)" >> ~/.emacs
+
+    build_post
+  fi
+}
+
+# Compile emcas native
+# eval $(opam env --revert)
+# soegtrop@DESKTOP-A1A5UC0 /usr/src/emacs-26.2-1.src
+# $ cygport emacs.cygport all
+# $ cygport emacs.cygport install
 
 ###################### GIT INITIALIZATION #####################
 
@@ -489,6 +525,7 @@ function coq_build_dune {
 
 git_init
 # emacs_mingw_install
+emacs_install_winpath
 opam_init
 opam_install_depext
 opam_install_ocaml_edit

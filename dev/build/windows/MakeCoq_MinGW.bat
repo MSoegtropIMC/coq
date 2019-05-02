@@ -395,6 +395,7 @@ IF "%RUNSETUP%"=="Y" (
     -P intltool ^
     -P emacs-w32,emacs-ocaml ^
     -P bash-completion,gnupg,jq,nc ^
+    -P cygport,gnutls,libtiff-devel,libgif-devel,libjpeg-devel,gnutls-devel ^
     %EXTRAPACKAGES% ^
     || GOTO ErrorExit
 
