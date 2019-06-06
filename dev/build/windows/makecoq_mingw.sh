@@ -505,6 +505,14 @@ function coq_git_get {
   if install_prep coq_git_get ; then
     # ToDo: make this https or git depending on if a ssh identity is given
     git clone https://github.com/coq/coq.git
+
+    # We need filemode=true in cygwin git and filemode=false in mingw git (used by vscode)
+    # - remove filemode=true setting in the local git config
+    # - set filemode=true in the global (per user) cygwin git config
+    # - MANUALLY set filemode=false in the global (per user) mingw git config
+    cd coq
+    git config --local --unset core.filemode
+    git config --global        core.filemode true
     build_post
   fi
 }
@@ -513,10 +521,55 @@ function coq_git_get {
 function coq_build_dune {
   if install_prep coq_build_dune ; then
     cd ~/coq
-    ocaml.exe configure.ml -no-ask -native-compiler no -prefix "./"
-    make -f Makefile.dune voboot $MAKE_OPT
+    #Mimic with the -xxdir options what opam install with --prefix actually does
+    #ocaml.exe configure.ml -no-ask -native-compiler no -prefix "./" -libdir "./lib/coq" -datadir "./share/coq"
+    #make -f Makefile.dune voboot $MAKE_OPT
+    sed -i 's|coqide_X11\.ml\.in|coqide_WIN32\.ml\.in|' ide/dune
     dune build   $MAKE_OPT
+    rm -rf "$PREFIXCOQ"
+    mkdir -p "$PREFIXCOQ"
     dune install $MAKE_OPT --prefix="$PREFIXCOQ"
+    chmod -R 555 "$PREFIXCOQ"
+    #TODO copy stub
+    build_post
+  fi
+}
+
+function coq_install_gtk {
+  if install_prep coq_install_gtk ; then
+    # create and copy gschemas.compiled
+    glib-compile-schemas /usr/x86_64-w64-mingw32/sys-root/mingw/share/glib-2.0/schemas/
+    mkdir -p "$PREFIXCOQ/share/glib-2.0/schemas/"
+    cp /usr/x86_64-w64-mingw32/sys-root/mingw/share/glib-2.0/schemas/gschemas.compiled "$PREFIXCOQ/share/glib-2.0/schemas/"
+
+    # Copy icons
+    ICONS=$(cat <<-END
+        16x16/actions/document-new.png
+        16x16/actions/pan-up-symbolic.symbolic.png
+        16x16/actions/window-close-symbolic.symbolic.png
+        16x16/actions/window-close.png
+        16x16/actions/window-maximize-symbolic.symbolic.png
+        16x16/actions/window-minimize-symbolic.symbolic.png
+        24x24/actions/document-save.png
+        24x24/actions/go-bottom.png
+        24x24/actions/go-down.png
+        24x24/actions/go-jump.png
+        24x24/actions/go-next.png
+        24x24/actions/go-previous.png
+        24x24/actions/go-top.png
+        24x24/actions/go-up.png
+        24x24/actions/process-stop.png
+        24x24/actions/system-run.png
+        24x24/actions/window-close.png
+        24x24/status/dialog-information.png
+END
+)
+    mkdir -p "$PREFIXCOQ/shareicons/Adwaita/"
+    for icon in $ICONS
+    do
+      mkdir -p $(dirname "$PREFIXCOQ/share/icons/Adwaita/$icon")
+      cp "/usr/share/icons/Adwaita/$icon" "$PREFIXCOQ/share/icons/Adwaita/$icon"
+    done
     build_post
   fi
 }
@@ -525,10 +578,11 @@ function coq_build_dune {
 
 git_init
 # emacs_mingw_install
-emacs_install_winpath
+# emacs_install_winpath
 opam_init
 opam_install_depext
 opam_install_ocaml_edit
 opam_install_opam_coq_deps
 coq_git_get
 coq_build_dune
+coq_install_gtk

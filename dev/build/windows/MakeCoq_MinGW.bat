@@ -366,8 +366,7 @@ IF "%COQREGTESTING%" == "Y" (
 
 SET "EXTRAPACKAGES= "
 
-IF NOT "%APPVEYOR%" == "True" (
-  SET EXTRAPACKAGES=-P wget,curl,git,gcc-core,gcc-g++,automake1.5
+  SET EXTRAPACKAGES=
 )
 
 ECHO "========== INSTALL CYGWIN =========="
@@ -380,9 +379,9 @@ IF "%RUNSETUP%"=="Y" (
     --local-package-dir "%CYGWIN_LOCAL_CACHE_WFMT%" ^
     --no-shortcuts ^
     %CYGWIN_OPT% ^
-    -P make,unzip ^
+    -P make,git,gcc-core,gcc-g++,automake1.5,automake1.14 ^
+    -P unzip,patch,wget,curl ^
     -P gdb,liblzma5 ^
-    -P patch,automake1.14 ^
     -P pkg-config ^
     -P mingw64-%ARCH%-binutils,mingw64-%ARCH%-gcc-core,mingw64-%ARCH%-gcc-g++,mingw64-%ARCH%-windows_default_manifest ^
     -P mingw64-%ARCH%-headers,mingw64-%ARCH%-runtime,mingw64-%ARCH%-pthreads,mingw64-%ARCH%-zlib ^
@@ -395,7 +394,8 @@ IF "%RUNSETUP%"=="Y" (
     -P intltool ^
     -P emacs-w32,emacs-ocaml ^
     -P bash-completion,gnupg,jq,nc ^
-    -P cygport,gnutls,libtiff-devel,libgif-devel,libjpeg-devel,gnutls-devel ^
+    -P cygport,gnutls,libtiff-devel,libgif-devel,libjpeg-devel,gnutls-devel,liblcms2-devel,librsvg2-devel ^
+    -P libX11-devel,libXft-devel,libXpm-devel,libXpm-noX-devel,libXrender-devel,libgtk3-devel,libxml2-devel,libXaw3d-devel ^
     %EXTRAPACKAGES% ^
     || GOTO ErrorExit
 
