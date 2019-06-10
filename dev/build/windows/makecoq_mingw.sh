@@ -1016,37 +1016,40 @@ function make_arch_pkg_config {
 
 function make_ocaml {
   get_flex_dll_link_bin
-  if build_prep https://github.com/ocaml/ocaml/archive 4.07.1 tar.gz 1 ocaml-4.07.1 ; then
-    # See README.win32.adoc
-    cp config/m-nt.h byterun/caml/m.h
-    cp config/s-nt.h byterun/caml/s.h
-    if [ "$TARGET_ARCH" == "i686-w64-mingw32" ]; then
-        cp config/Makefile.mingw config/Makefile
-    elif [ "$TARGET_ARCH" == "x86_64-w64-mingw32" ]; then
-        cp config/Makefile.mingw64 config/Makefile
-    else
-        echo "Unknown target architecture"
-        return 1
-    fi
+  # if build_prep https://github.com/ocaml/ocaml/archive 4.07.1 tar.gz 1 ocaml-4.07.1 ; then
+  if build_prep https://github.com/MSoegtropIMC/ocaml/archive issue_8678_ocamldebug_childprocess tar.gz 1 ocaml-issue_8678_ocamldebug_childprocess ; then
+    # See README.win32.adoc (up to 4.07)
+    # cp config/m-nt.h byterun/caml/m.h
+    # cp config/s-nt.h byterun/caml/s.h
+    # if [ "$TARGET_ARCH" == "i686-w64-mingw32" ]; then
+    #     cp config/Makefile.mingw config/Makefile
+    # elif [ "$TARGET_ARCH" == "x86_64-w64-mingw32" ]; then
+    #     cp config/Makefile.mingw64 config/Makefile
+    # else
+    #     echo "Unknown target architecture"
+    #     return 1
+    # fi
+    #MAKEFILE_CONFIG=config/Makefile
+
+    # See README.win32.adoc (neweser OCaml)
+    ./configure --build=x86_64-unknown-cygwin --host=x86_64-w64-mingw32
+    MAKEFILE_CONFIG=Makefile.config
 
     # Prefix is fixed in make file - replace it with the real one
     # TODO: this might not work if PREFIX contains spaces
-    sed -i "s|^PREFIX=.*|PREFIX=$PREFIXOCAML|" config/Makefile
+    sed -i "s|^PREFIX=.*|PREFIX=$PREFIXOCAML|" $MAKEFILE_CONFIG
 
     # We don't want to mess up Coq's directory structure so put the OCaml library in a separate folder
     # If we refer to the make variable ${PREFIX} below, camlp5 ends up having the wrong path:
     # D:\bin\coq64_buildtest_abs_ocaml4\bin>ocamlc -where => D:/bin/coq64_buildtest_abs_ocaml4/libocaml
     # D:\bin\coq64_buildtest_abs_ocaml4\bin>camlp4 -where => ${PREFIX}/libocaml\camlp4
     # So we put an explicit path in there
-    sed -i "s|^LIBDIR=.*|LIBDIR=$PREFIXOCAML/libocaml|" config/Makefile
+    sed -i "s|^LIBDIR=.*|LIBDIR=$PREFIXOCAML/libocaml|" $MAKEFILE_CONFIG
 
     # Note: ocaml doesn't support -j 8, so don't pass MAKE_OPT
     # I verified that 4.02.3 still doesn't support parallel build
-    log2 make world -f Makefile.nt
-    log2 make bootstrap -f Makefile.nt
-    log2 make opt -f Makefile.nt
-    log2 make opt.opt -f Makefile.nt
-    log2 make install -f Makefile.nt
+    log2 make world.opt
+    log2 make install
     # TODO log2 make clean -f Makefile.nt Temporarily disabled for ocamlbuild development
 
     # Move license files and other into into special folder
@@ -1191,7 +1194,7 @@ function make_lablgtk {
     log2 dune build -p lablgtk3-sourceview3
     log2 dune install lablgtk3-sourceview3
 
-    log2 dune clean
+    # log2 dune clean
     build_post
   fi
 }
@@ -1874,6 +1877,8 @@ list_files ocaml_coq
 make_addons
 
 list_files_always ocaml_coq_addons
+
+get_cygwin_mingw_sources
 
 if [ "$MAKEINSTALLER" == "Y" ] ; then
   make_coq_installer
